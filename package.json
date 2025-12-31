@@ -1,0 +1,10 @@
+{
+  "name": "websocket-group-chat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simple WebSocket group chat where users join with a name.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
