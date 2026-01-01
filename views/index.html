@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Group Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=Manrope:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="backdrop"></div>
+    <div class="page">
+      <header class="top">
+        <div class="logo">
+          <span class="dot"></span>
+          Signal Room
+        </div>
+        <div class="pill">WebSocket powered</div>
+      </header>
+
+      <main class="layout">
+        <section class="hero">
+          <p class="eyebrow">Shared room</p>
+          <h1>Enter your name to join the chat</h1>
+          <p class="lede">
+            One room, no accounts. Drop your name to step inside and talk with everyone in real time.
+          </p>
+          <form id="nameForm" class="name-form">
+            <input
+              id="nameInput"
+              type="text"
+              name="name"
+              placeholder="How should we call you?"
+              autocomplete="off"
+              required
+            />
+            <button type="submit" id="joinButton">Join chat</button>
+          </form>
+          <p class="hint">Your name is the only key you need.</p>
+        </section>
+
+        <section class="chat-card" id="chatCard">
+          <div class="chat-header">
+            <div>
+              <p class="label">Live room</p>
+              <div class="status">
+                <span class="status-dot offline" id="statusDot"></span>
+                <span id="statusText">Not connected</span>
+              </div>
+            </div>
+            <div id="selfTag" class="self hidden"></div>
+          </div>
+
+          <div class="message-feed" id="messages">
+            <div class="empty">Join with your name to see the conversation.</div>
+          </div>
+
+          <form id="messageForm" class="message-form">
+            <input
+              id="messageInput"
+              type="text"
+              name="message"
+              placeholder="Type a message and press Enter"
+              autocomplete="off"
+              disabled
+              required
+            />
+            <button id="sendButton" type="submit" disabled>Send</button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <script src="/client.js"></script>
+  </body>
+</html>

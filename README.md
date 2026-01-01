@@ -2,6 +2,15 @@
 
 Simple WebSocket group chat. Users enter only a name, join the shared room, and chat in real time. Everything runs on plain JS/CSS/HTML with a tiny Node server (no external packages).
 
+## Architecture
+- Controllers: `controllers/staticController.js` serves the HTML/assets (serves `client.js` from `models/`); `controllers/websocketController.js` handles the WebSocket lifecycle and chat actions.
+- Model: `models/chatRoom.js` tracks sockets and user names for the room; `models/nameStore.js` persists them to SQLite.
+- Views: `views/` holds the HTML and CSS (client JS sits with models).
+- Entry: `server.js` wires controllers to the HTTP server and upgrade event.
+
+## Notes
+- Database file: `chat.sqlite` is created in the project root automatically. Names are inserted on join.
+
 ## Run locally
 ```bash
 node server.js
