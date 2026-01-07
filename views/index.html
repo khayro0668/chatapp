@@ -42,6 +42,16 @@
             <button type="submit" id="joinButton">Join chat</button>
           </form>
           <p class="hint">Your name is the only key you need.</p>
+
+          <div id="connectedPanel" class="connected-panel hidden">
+            <div class="connected-header">
+              <span>Connected</span>
+              <span id="userCount" class="pill pill-compact">0</span>
+            </div>
+            <ul id="userList" class="user-list">
+              <li class="muted">No one online</li>
+            </ul>
+          </div>
         </section>
 
         <section class="chat-card" id="chatCard">

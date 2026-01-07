@@ -28,6 +28,10 @@ class ChatRoom {
   sockets() {
     return Array.from(this.clients.keys());
   }
+
+  names() {
+    return Array.from(this.clients.values()).filter(Boolean);
+  }
 }
 
 module.exports = new ChatRoom();

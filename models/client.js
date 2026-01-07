@@ -5,6 +5,10 @@ const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
 const selfTag = document.getElementById('selfTag');
 const messageFeed = document.getElementById('messages');
+const connectedPanel = document.getElementById('connectedPanel');
+const userList = document.getElementById('userList');
+const userCount = document.getElementById('userCount');
+const hint = document.querySelector('.hint');
 const messageForm = document.getElementById('messageForm');
 const messageInput = document.getElementById('messageInput');
 const sendButton = document.getElementById('sendButton');
@@ -19,6 +23,43 @@ const setConnected = (isConnected, text) => {
   statusText.textContent = text;
   messageInput.disabled = !isConnected;
   sendButton.disabled = !isConnected;
+};
+
+const toggleConnectedPanel = (show) => {
+  if (show) {
+    nameForm.classList.add('hidden');
+    if (hint) hint.classList.add('hidden');
+    connectedPanel.classList.remove('hidden');
+  } else {
+    nameForm.classList.remove('hidden');
+    if (hint) hint.classList.remove('hidden');
+    connectedPanel.classList.add('hidden');
+  }
+};
+
+const setUsers = (names) => {
+  userCount.textContent = names.length;
+  userList.innerHTML = '';
+  if (!names.length) {
+    const li = document.createElement('li');
+    li.className = 'muted';
+    li.textContent = 'No one online';
+    userList.appendChild(li);
+    return;
+  }
+
+  names.forEach((name) => {
+    const li = document.createElement('li');
+    const badge = document.createElement('span');
+    badge.className = 'badge';
+    badge.textContent = (name[0] || '?').toUpperCase();
+
+    const label = document.createElement('span');
+    label.textContent = name === userName ? `${name} (You)` : name;
+
+    li.append(badge, label);
+    userList.appendChild(li);
+  });
 };
 
 const renderStatus = (text) => {
@@ -71,14 +112,13 @@ const clearEmptyState = () => {
 };
 
 const connect = (name) => {
-  if (socket) {
-    socket.close();
-  }
-
+ 
   userName = name;
   setConnected(false, 'Connecting...');
   selfTag.textContent = '';
   selfTag.classList.add('hidden');
+  setUsers([]);
+  toggleConnectedPanel(false);
 
   socket = new WebSocket(websocketUrl());
 
@@ -90,6 +130,7 @@ const connect = (name) => {
     clearEmptyState();
     renderStatus(`Joined as ${userName}.`);
     messageInput.focus();
+    toggleConnectedPanel(true);
   });
 
   socket.addEventListener('message', (event) => {
@@ -112,6 +153,11 @@ const connect = (name) => {
       return;
     }
 
+    if (data.type === 'users') {
+      setUsers(data.names || []);
+      return;
+    }
+
     if (data.type === 'error') {
       renderStatus(`Error: ${data.message}`);
     }
@@ -120,6 +166,8 @@ const connect = (name) => {
   socket.addEventListener('close', () => {
     setConnected(false, 'Disconnected');
     renderStatus('Connection closed. Join again to re-enter.');
+    setUsers([]);
+    toggleConnectedPanel(false);
   });
 
   socket.addEventListener('error', () => {
@@ -136,7 +184,7 @@ nameForm.addEventListener('submit', (event) => {
   joinButton.textContent = 'Connecting...';
   connect(name);
 
-  // reset UI after slight delay to prevent spam clicks while connecting
+  
   setTimeout(() => {
     joinButton.disabled = false;
     joinButton.textContent = 'Join chat';

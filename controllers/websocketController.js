@@ -1,25 +1,24 @@
 const chatRoom = require('../models/chatRoom');
-const { recordName } = require('../models/nameStore');
-const { createAcceptValue, encodeFrame, decodeFrame } = require('./websocketFrames');
 
 const sendJSON = (socket, payload) => {
-  if (socket.destroyed) return;
-  socket.write(encodeFrame(JSON.stringify(payload)));
+  if (socket.readyState === socket.OPEN) {
+    socket.send(JSON.stringify(payload));
+  }
 };
 
-const broadcast = (payload) => {
-  const frame = encodeFrame(JSON.stringify(payload));
-  for (const sock of chatRoom.sockets()) {
-    if (!sock.destroyed) {
-      sock.write(frame);
+const broadcast = (wss, payload) => {
+  const data = JSON.stringify(payload);
+  for (const client of wss.clients) {
+    if (client.readyState === client.OPEN) {
+      client.send(data);
     }
   }
 };
 
-const handleTextMessage = (socket, rawPayload) => {
+const handleTextMessage = (wss, socket, rawPayload) => {
   let data;
   try {
-    data = JSON.parse(rawPayload);
+    data = JSON.parse(rawPayload.toString());
   } catch (err) {
     sendJSON(socket, { type: 'error', message: 'Invalid message format.' });
     return;
@@ -34,9 +33,9 @@ const handleTextMessage = (socket, rawPayload) => {
       return;
     }
     chatRoom.setName(socket, name);
-    recordName(name);
     sendJSON(socket, { type: 'system', message: `Welcome, ${name}!` });
-    broadcast({ type: 'status', message: `${name} joined the chat.` });
+    broadcast(wss, { type: 'status', message: `${name} joined the chat.` });
+    broadcast(wss, { type: 'users', names: chatRoom.names() });
     return;
   }
 
@@ -48,68 +47,28 @@ const handleTextMessage = (socket, rawPayload) => {
   if (data.type === 'chat') {
     const text = String(data.text || '').trim();
     if (!text) return;
-    broadcast({ type: 'chat', from: currentName, text, timestamp: Date.now() });
+    broadcast(wss, { type: 'chat', from: currentName, text, timestamp: Date.now() });
   }
 };
 
-const handleUpgrade = (req, socket) => {
-  if (req.headers.upgrade?.toLowerCase() !== 'websocket') {
-    socket.destroy();
-    return;
-  }
+const setupWebsocket = (wss) => {
+  wss.on('connection', (socket) => {
+    chatRoom.add(socket);
 
-  const acceptKey = req.headers['sec-websocket-key'];
-  if (!acceptKey) {
-    socket.destroy();
-    return;
-  }
+    const cleanup = () => {
+      const name = chatRoom.remove(socket);
+      if (name) {
+        broadcast(wss, { type: 'status', message: `${name} left the chat.` });
+        broadcast(wss, { type: 'users', names: chatRoom.names() });
+      }
+    };
 
-  const headers = [
-    'HTTP/1.1 101 Switching Protocols',
-    'Upgrade: websocket',
-    'Connection: Upgrade',
-    `Sec-WebSocket-Accept: ${createAcceptValue(acceptKey)}`,
-    '\r\n',
-  ];
-  socket.write(headers.join('\r\n'));
-
-  chatRoom.add(socket);
-
-  let closed = false;
-  const cleanup = () => {
-    if (closed) return;
-    closed = true;
-    const name = chatRoom.remove(socket);
-    if (name) {
-      broadcast({ type: 'status', message: `${name} left the chat.` });
-    }
-  };
-
-  socket.on('data', (buffer) => {
-    const frame = decodeFrame(buffer);
-    if (!frame) return;
-    const { opcode, payload } = frame;
-
-    if (opcode === 0x8) {
-      socket.end();
-      cleanup();
-      return;
-    }
-
-    if (opcode === 0x9) {
-      socket.write(encodeFrame(payload || '', 0x0a));
-      return;
-    }
-
-    if (opcode !== 0x1) return;
-    handleTextMessage(socket, payload);
+    socket.on('message', (data) => handleTextMessage(wss, socket, data));
+    socket.on('close', cleanup);
+    socket.on('error', cleanup);
   });
-
-  socket.on('end', cleanup);
-  socket.on('close', cleanup);
-  socket.on('error', cleanup);
 };
 
 module.exports = {
-  handleUpgrade,
+  setupWebsocket,
 };
